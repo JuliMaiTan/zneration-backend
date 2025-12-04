@@ -1,31 +1,20 @@
-// Força o Node.js runtime (obrigatório)
-export const config = {
-  runtime: "nodejs",
-};
-
-import { Pool } from "pg";
-
-// Conexão Neon Postgres
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-// Endpoint GET /api/technologies
 export default async function handler(req, res) {
   try {
-    const result = await pool.query(`
-      SELECT 
-        id,
-        name,
-        slug,
-        logo,
-        short_description AS "shortDescription"
-      FROM technologies
-      ORDER BY id;
+    const { rows } = await pool.query(`
+      SELECT
+        t.id,
+        t.name,
+        t.slug,
+        t.logo,
+        t.short_description AS "shortDescription",
+        t.images,
+        c.name AS category
+      FROM technologies t
+      LEFT JOIN categories c ON c.id = t.category_id
+      ORDER BY t.id;
     `);
 
-    res.setHeader("Content-Type", "application/json");
-    res.status(200).json({ technologies: result.rows });
+    res.status(200).json({ technologies: rows });
   } catch (err) {
     console.error("API ERROR:", err);
     res.status(500).json({ error: err.message });
