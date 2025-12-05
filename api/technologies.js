@@ -1,15 +1,3 @@
-// Forçar o runtime Node.js
-export const config = {
-  runtime: "nodejs",
-};
-
-import { Pool } from "pg";
-
-// Criar conexão com Neon
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
 export default async function handler(req, res) {
   try {
     const { rows } = await pool.query(`
@@ -26,7 +14,8 @@ export default async function handler(req, res) {
       ORDER BY t.id;
     `);
 
-    res.status(200).json({ technologies: rows });
+    res.status(200).json(rows);
+
   } catch (err) {
     console.error("API ERROR:", err.message);
     res.status(500).json({ error: err.message });
