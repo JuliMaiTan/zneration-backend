@@ -1,11 +1,53 @@
-{
-  "name": "zneration-backend",
-  "version": "1.0.0",
-  "type": "commonjs",
-  "scripts": {
-    "start": "node api/technologies.js"
-  },
-  "dependencies": {
-    "pg": "^8.11.3"
+export const config = {
+  runtime: "nodejs"
+};
+
+const { Pool } = require("pg");
+
+// Conexão com Neon
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+// CORS DEFINITIVO
+function applyCors(req, res) {
+  const allowed = [
+    "https://znerationtech.com",
+    "https://www.znerationtech.com",
+    "https://zneration-editorial-futures.vercel.app",
+    "http://localhost:5173"
+  ];
+
+  const origin = req.headers.origin;
+
+  if (origin && allowed.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
   }
+
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return true;
+  }
+
+  return false;
 }
+
+// HANDLER COMMONJS — 100% COMPATÍVEL COM VERCEL
+module.exports = async function handler(req, res) {
+  // aplica CORS
+  if (applyCors(req, res)) return;
+
+  try {
+    const query = `
+      SELECT
+        t.id,
+        t.name,
+        t.slug,
+        t.logo,
+        t.short_description AS "shortDescription",
+        t.images,
+        c.name AS category
