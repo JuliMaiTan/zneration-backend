@@ -4,38 +4,41 @@ export const config = {
 
 import { Pool } from "pg";
 
-// --- DB CONNECTION ---
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
-// --- CORS ---
-function setCors(req, res) {
-  const allowedOrigins = [
+// CORS DEFINITIVO — COMPATÍVEL COM VERCEL
+function applyCors(req, res) {
+  const allowed = [
     "https://znerationtech.com",
     "https://www.znerationtech.com",
     "https://zneration-editorial-futures.vercel.app"
   ];
 
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
+  const origin = req.headers?.origin;
+
+  if (origin && allowed.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
 
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return true;
+  }
+
+  return false;
 }
 
-// --- MAIN HANDLER ---
 export default async function handler(req, res) {
+  // aplica CORS primeiro
+  if (applyCors(req, res)) return;
+
   try {
-    setCors(req, res);
-
-    if (req.method === "OPTIONS") {
-      return res.status(200).end();
-    }
-
     const query = `
       SELECT
         t.id,
@@ -43,17 +46,20 @@ export default async function handler(req, res) {
         t.slug,
         t.logo,
         t.short_description AS "shortDescription",
+        t.images,
         c.name AS category
-      FROM public.technologies t
-      LEFT JOIN public.categories c ON c.id = t.category_id
+      FROM technologies t
+      LEFT JOIN categories c ON c.id = t.category_id
       ORDER BY t.id;
     `;
 
-    const { rows } = await pool.query(query);
-    return res.status(200).json(rows);
+    const result = await pool.query(query);
 
-  } catch (error) {
-    console.error("BACKEND ERROR:", error);
-    return res.status(500).json({ error: error.message });
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json(result.rows);
+
+  } catch (err) {
+    console.error("🔥 BACKEND ERROR:", err);
+    return res.status(500).json({ error: err.message });
   }
 }
