@@ -9,7 +9,22 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+// 🔥 CORS — necessário para permitir consumo pelo domínio customizado
+function setCors(res) {
+  res.setHeader("Access-Control-Allow-Origin", "https://www.znerationtech.com");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
 export default async function handler(req, res) {
+  // aplica CORS em todas as respostas
+  setCors(res);
+
+  // resposta imediata para preflight OPTIONS
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
   try {
     const { rows } = await pool.query(`
       SELECT
