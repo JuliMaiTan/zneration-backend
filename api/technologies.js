@@ -2,14 +2,15 @@ export const config = {
   runtime: "nodejs18.x"
 };
 
-const { Pool } = require("pg");
+import { Pool } from "pg";
 
+// pool global
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
-// CORS DEFINITIVO
+// CORS para Vercel (ESM)
 function applyCors(req, res) {
   const allowed = [
     "https://znerationtech.com",
@@ -17,9 +18,9 @@ function applyCors(req, res) {
     "https://zneration-editorial-futures.vercel.app"
   ];
 
-  const origin = req.headers?.origin;
+  const origin = req.headers.origin;
 
-  if (origin && allowed.includes(origin)) {
+  if (allowed.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
 
@@ -34,11 +35,12 @@ function applyCors(req, res) {
   return false;
 }
 
-module.exports = async function handler(req, res) {
+// DEFAULT EXPORT — VERCEL ESM COMPATÍVEL
+export default async function handler(req, res) {
   if (applyCors(req, res)) return;
 
   try {
-    const query = `
+    const result = await pool.query(`
       SELECT
         t.id,
         t.name,
@@ -50,15 +52,12 @@ module.exports = async function handler(req, res) {
       FROM technologies t
       LEFT JOIN categories c ON c.id = t.category_id
       ORDER BY t.id;
-    `;
+    `);
 
-    const result = await pool.query(query);
-
-    res.setHeader("Content-Type", "application/json");
     return res.status(200).json(result.rows);
 
   } catch (err) {
-    console.error("🔥 BACKEND ERROR:", err.message);
+    console.error("🔥 API ERROR:", err);
     return res.status(500).json({ error: err.message });
   }
-};
+}
