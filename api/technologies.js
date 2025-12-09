@@ -2,14 +2,14 @@ export const config = {
   runtime: "nodejs18.x"
 };
 
-import { Pool } from "pg";
+const { Pool } = require("pg");
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
-// CORS DEFINITIVO — COMPATÍVEL COM VERCEL
+// CORS DEFINITIVO
 function applyCors(req, res) {
   const allowed = [
     "https://znerationtech.com",
@@ -34,8 +34,7 @@ function applyCors(req, res) {
   return false;
 }
 
-export default async function handler(req, res) {
-  // aplica CORS primeiro
+module.exports = async function handler(req, res) {
   if (applyCors(req, res)) return;
 
   try {
@@ -59,7 +58,7 @@ export default async function handler(req, res) {
     return res.status(200).json(result.rows);
 
   } catch (err) {
-    console.error("🔥 BACKEND ERROR:", err);
+    console.error("🔥 BACKEND ERROR:", err.message);
     return res.status(500).json({ error: err.message });
   }
-}
+};
