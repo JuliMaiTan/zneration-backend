@@ -1,11 +1,65 @@
-{
-  "name": "zneration-backend",
-  "version": "1.0.0",
-  "type": "commonjs",
-  "scripts": {
-    "start": "node api/technologies.js"
-  },
-  "dependencies": {
-    "pg": "^8.11.3"
+export const config = {
+  runtime: "nodejs18.x"
+};
+
+const { Pool } = require("pg");
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+// CORS para ambientes comuns de Vercel
+function applyCors(req, res) {
+  const allowedOrigins = [
+    "https://znerationtech.com",
+    "https://www.znerationtech.com",
+    "https://zneration-editorial-futures.vercel.app",
+    "http://localhost:5173"
+  ];
+
+  const origin = req.headers.origin;
+
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
   }
+
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return true;
+  }
+
+  return false;
 }
+
+// 🚀 CommonJS export — Vercel RECONHECE este formato
+module.exports = async function handler(req, res) {
+  if (applyCors(req, res)) return;
+
+  try {
+    const query = `
+      SELECT
+        t.id,
+        t.name,
+        t.slug,
+        t.logo,
+        t.short_description AS "shortDescription",
+        t.images,
+        c.name AS category
+      FROM technologies t
+      LEFT JOIN categories c ON c.id = t.category_id
+      ORDER BY t.id;
+    `;
+
+    const result = await pool.query(query);
+
+    res.status(200).json(result.rows);
+
+  } catch (err) {
+    console.error("🔥 BACKEND ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
