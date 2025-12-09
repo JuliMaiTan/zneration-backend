@@ -1,16 +1,16 @@
 export const config = {
-  runtime: "nodejs18.x"
+  runtime: "nodejs"
 };
 
 import { Pool } from "pg";
 
-// pool global
+// Conexão com Neon
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
-// CORS para Vercel (ESM)
+// Middleware de CORS
 function applyCors(req, res) {
   const allowed = [
     "https://znerationtech.com",
@@ -20,7 +20,7 @@ function applyCors(req, res) {
 
   const origin = req.headers.origin;
 
-  if (allowed.includes(origin)) {
+  if (origin && allowed.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
 
@@ -35,7 +35,7 @@ function applyCors(req, res) {
   return false;
 }
 
-// DEFAULT EXPORT — VERCEL ESM COMPATÍVEL
+// Função principal da API
 export default async function handler(req, res) {
   if (applyCors(req, res)) return;
 
@@ -54,10 +54,10 @@ export default async function handler(req, res) {
       ORDER BY t.id;
     `);
 
-    return res.status(200).json(result.rows);
+    res.status(200).json(result.rows);
 
   } catch (err) {
     console.error("🔥 API ERROR:", err);
-    return res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 }
